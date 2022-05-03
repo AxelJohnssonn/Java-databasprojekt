@@ -14,7 +14,7 @@ public class Database {
 	/**
 	 * Modify it to fit your environment and then use this string when connecting to your database!
 	 */
-	private static final String jdbcString = "jdbc:mysql://localhost/hbg04";
+	private static final String jdbcString = "jdbc:mysql://puccini.cs.lth.se/hbg04";
 
 	// For use with MySQL or PostgreSQL
 	private static final String jdbcUsername = "hbg04";
@@ -25,9 +25,8 @@ public class Database {
 	public void connect() {
 		try {
 			conn = DriverManager.getConnection(jdbcString, jdbcUsername, jdbcPassword);
-			System.out.println("nice");
 		} catch (SQLException e) {
-
+			System.err.println(e);
 		}
 	}
 	
