@@ -25,10 +25,12 @@ palletNbr	int not null,
 palletDate	date,
 blocked 	boolean,
 dDate 		date,
+ordNbr    int,
 location 	varchar(100) not null,
 cName		varchar(100) not null,
 primary key (palletNbr),
-foreign key (cName) references Cookie(cName)
+foreign key (cName) references Cookie(cName),
+foreign key (ordNbr) references Orders(ordNbr)
 );
 create table Cookie(
 cName 		varchar(100),
