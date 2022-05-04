@@ -1,12 +1,17 @@
 package krusty;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import spark.Request;
 import spark.Response;
 
-import java.sql.Connection;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.TreeMap;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.sql.*;
+import java.sql.Date;
+import java.time.LocalDate;
+import java.util.*;
 
 import static krusty.Jsonizer.toJson;
 
@@ -20,6 +25,55 @@ public class Database {
 	private static final String jdbcUsername = "hbg04";
 	private static final String jdbcPassword = "wxy677wl";
 
+	private static final String Customers = "INSERT INTO Customers(customer, address, teleNbr) VALUES" +
+			"    ('Finkakor AB', 'Helsingborg', '07696969')," +
+			"    ('Småbröd AB', 'Malmö', '07696969')," +
+			"    ('Kaffebröd AB', 'Landskrona', '07696969')," +
+			"    ('Bjudkakor AB', 'Ystad', '07696969')," +
+			"    ('Kalaskakor AB', 'Trelleborg', '07696969')," +
+			"    ('Partykakor AB', 'Kristianstad', '07696969')," +
+			"    ('Gästkakor AB', 'Hässleholm', '07696969')," +
+			"    ('Skånekakor AB', 'Perstorp, '07696969')" +
+			";";
+	private static final String Cookie = "INSERT INTO Cookie(cName) VALUES" +
+			"    ('Amneris')," +
+			"    ('Berliner')," +
+			"    ('Nut cookie')," +
+			"    ('Nut ring')," +
+			"    ('Tango')," +
+			"    ('Almond delight')" +
+			";";
+	private static final String Ingredient = "INSERT INTO Ingredients(ingredientName, stockAmount,buyDate, unit) VALUES" +
+			"    ('Bread crumbs', 500000,'2022-05-03', 'g')," +
+			"    ('Butter', 500000, '2022-05-03','g')," +
+			"    ('Chocolate', 500000, '2022-05-03','g')," +
+			"    ('Chopped almonds', 500000, '2022-05-03','g')," +
+			"    ('Cinnamon', 500000, '2022-05-03','g')," +
+			"    ('Egg whites', 500000, '2022-05-03','ml')," +
+			"    ('Eggs', 500000, '2022-05-03','g')," +
+			"    ('Fine-ground nuts', 500000, '2022-05-03','g')," +
+			"    ('Flour', 500000, '2022-05-03','g')," +
+			"    ('Ground, roasted nuts', 500000, '2022-05-03','g')," +
+			"    ('Icing sugar', 500000, '2022-05-03','g')," +
+			"    ('Marzipan', 500000, '2022-05-03','g')," +
+			"    ('Potato starch', 500000, '2022-05-03','g')," +
+			"    ('Roasted, chopped nuts', 500000, '2022-05-03','g')," +
+			"    ('Sodium bicarbonate', 500000, '2022-05-03','g')," +
+			"    ('Sugar', 500000, '2022-05-03','g')," +
+			"    ('Vanilla sugar', 500000, '2022-05-03','g')," +
+			"    ('Vanilla', 500000, '2022-05-03','g')," +
+			"    ('Wheat flour', 500000, '2022-05-03','g')" +
+			";";
+
+	private static final String Contain = "INSERT INTO Contain (cName, ingredientName, rAmount) VALUES" +
+			"    ('Almond delight', 'Butter', 400),('Almond delight', 'Chopped almonds', 279),('Almond delight', 'Cinnamon', 10),('Almond delight', 'Flour', 400),('Almond delight', 'Sugar', 270)," +
+			"    ('Amneris', 'Butter', 250),('Amneris', 'Eggs', 250),('Amneris', 'Marzipan', 750),('Amneris', 'Potato starch', 25),('Amneris', 'Wheat flour', 25)," +
+			"    ('Berliner', 'Butter', 250),('Berliner', 'Chocolate', 50),('Berliner', 'Eggs', 50),('Berliner', 'Flour', 350),('Berliner', 'Icing sugar', 100),('Berliner', 'Vanilla sugar', 5)," +
+			"    ('Nut cookie', 'Bread crumbs', 125),('Nut cookie', 'Chocolate', 50),('Nut cookie', 'Egg whites', 350),('Nut cookie', 'Fine-ground nuts', 750),('Nut cookie', 'Ground, roasted nuts', 625),('Nut cookie', 'Sugar', 375)," +
+			"    ('Nut ring', 'Butter', 450),('Nut ring', 'Flour', 450),('Nut ring', 'Icing sugar', 190),('Nut ring', 'Roasted, chopped nuts', 225)," +
+			"    ('Tango', 'Butter', 200),('Tango', 'Flour', 300),('Tango', 'Sodium bicarbonate', 4),('Tango', 'Sugar', 250),('Tango', 'Vanilla', 2)" +
+			";";
+
 	private Connection conn;
 
 	public void connect() {
@@ -30,314 +84,232 @@ public class Database {
 		}
 	}
 	
-
 	// TODO: Implement and change output in all methods below!
-public String getCustomers(Request req, Response res) {
-
-		String json = "";
-		String sql = "SELECT customer AS name, address FROM Customers";
-
+	public String getCustomers(Request req, Response res) {
+        String sql = "SELECT customer AS name, address FROM Customers";
 		try {
-			PreparedStatement ps = conn.prepareStatement(sql);
-			ResultSet rs = ps.executeQuery();
+			PreparedStatement stmt = conn.prepareStatement(sql);
+			ResultSet rs = stmt.executeQuery();
 
-			json = Jsonizer.toJson(rs, "customers");
+			return toJson(rs, "costumers");
 		} catch (SQLException e) {
-
-			e.printStackTrace();
+			return "";
 		}
-
-		return json;
-	}
+    }
 
 	public String getRawMaterials(Request req, Response res) {
-
-		String json = "";
-		String sql = "SELECT ingredient AS name, stockAmount AS amount, unit" + " FROM Ingredients";
-
+        String sql = "SELECT ingredientName AS name, stockAmount AS amount, unit FROM Ingredients";
 		try {
-			PreparedStatement ps = conn.prepareStatement(sql);
+			PreparedStatement stmt = conn.prepareStatement(sql);
+			ResultSet rs = stmt.executeQuery();
 
-			ResultSet rs = ps.executeQuery();
-
-			json = Jsonizer.toJson(rs, "raw-materials");
-
+			return toJson(rs, "raw-materials");
 		} catch (SQLException e) {
-
-			e.printStackTrace();
+			return "";
 		}
+    }
 
-		return json;
-	}
-
-	public String getCookies(Request req, Response res) {
-
-		String json = "";
-		String sql = "SELECT cName AS name FROM Cookies";
+    public String getCookies(Request req, Response res) {
+        String sql = "SELECT cName AS name FROM Cookie";
 		try {
-			PreparedStatement ps = conn.prepareStatement(sql);
+			PreparedStatement stmt = conn.prepareStatement(sql);
+			ResultSet rs = stmt.executeQuery();
 
-			ResultSet rs = ps.executeQuery();
-
-			json = Jsonizer.toJson(rs, "cookies");
-
+			return toJson(rs, "cookies");
 		} catch (SQLException e) {
-			e.printStackTrace();
+			return "";
 		}
-		return json;
-	}
+    }
 
-	public String getRecipes(Request req, Response res) {
-
-		String json = "";
-		String sql = "SELECT cName AS cookie, IngredientAmount.ingredient AS raw_material, amount, unit\n"
-				+ "FROM IngredientAmount\n"
-				+ "INNER JOIN StoredIngredients on IngredientAmount.ingredient = StoredIngredients.ingredient";
+    public String getRecipes(Request req, Response res) {
+        String sql = "SELECT cName as cookie, Contain.ingredientName as raw_material, stockAmount as amount, unit FROM Contain, Ingredient WHERE Contain.ingredientName = Ingredients.ingredientName";
 		try {
-			PreparedStatement ps = conn.prepareStatement(sql);
+			PreparedStatement stmt = conn.prepareStatement(sql);
+			ResultSet rs = stmt.executeQuery();
 
-			ResultSet rs = ps.executeQuery();
-
-			json = Jsonizer.toJson(rs, "recipes");
-
+			return Jsonizer.toJson(rs, "recipes");
 		} catch (SQLException e) {
-			e.printStackTrace();
+			return "";
 		}
-		return json;
-	}
+    }
+	
+	public String getPallets(Request req, Response res) throws SQLException {
+		String sql = "SELECT palletNbr as id, cName AS cookie, palletDate as production_date, customer, blocked FROM Pallet INNER JOIN Orders ON Orders.ordNbr = Pallet.ordNbr";
+		String title = "pallets";
+		StringBuilder sb = new StringBuilder();
 
-	public String getPallets(Request req, Response res) {
+		sb.append(sql);
 
-		String json = "";
-		String sql = "SELECT palletNbr AS id, cName AS cookie, palletDate AS production_date, location AS customer, blocked AS blocked " // Gets
-																																				// pallets
-				+ "FROM Pallet ";
+		List<String> paramList = Arrays.asList("from", "to", "cookie", "blocked");
+		HashMap<String, String> map = new HashMap<String, String>();
 
-		String from = req.queryParams("from");
-		String to = req.queryParams("to");
-		String cookie = req.queryParams("cookie");
-		String blocked = req.queryParams("blocked");
-
-		ArrayList<String> values = new ArrayList<String>();
-
-		if (from != null || to != null || cookie != null || blocked != null) { // Adds filters and a WHERE clause
-			sql += "WHERE ";
-		}
-
-		if (from != null) {
-			sql += "production_date >= ? ";
-			values.add(from);
-		}
-
-		if (to != null) {
-			if (values.size() > 0)
-				sql += "AND ";
-
-			sql += "production_date <= ? ";
-
-			values.add(to);
-		}
-
-		if (cookie != null) {
-			if (values.size() > 0)
-				sql += "AND ";
-
-			sql += "cookie = ? ";
-
-			values.add(cookie);
-
-		}
-
-		if (blocked != null) {
-			if (values.size() > 0)
-				sql += "AND ";
-
-			sql += "blocked = ? ";
-
-			values.add(blocked);
-		}
-
-		try {
-
-			System.out.println(sql);
-
-			PreparedStatement ps = conn.prepareStatement(sql);
-			for (int i = 0; i < values.size(); i++) { // Add values to the "?"
-
-				ps.setString(i + 1, values.get(i));
+		for (String param : paramList) {
+			if (req.queryParams(param) != null) {
+				map.put(param, req.queryParams(param));
 			}
-			ResultSet rs = ps.executeQuery();
-
-			json = Jsonizer.toJson(rs, "pallets");
-
-		} catch (SQLException e) {
-			e.printStackTrace();
 		}
 
-		return json;
+		if (map.size() > 0) {
+			sb.append(" WHERE");
+		}
+
+		int size = 1;
+
+		for (Map.Entry<String, String> entry : map.entrySet()) {
+			switch (entry.getKey()) {
+				case "from":
+					sb.append(" palletDate >= ?");
+					break;
+				case "to":
+					sb.append(" palletDate <= ?");
+					break;
+				case "blocked":
+					sb.append(" blocked = ?");
+					break;
+				case "cookie":
+					sb.append(" cName = ?");
+					break;
+				default:
+					break;
+			}
+			if (map.size() > size) {
+				size++;
+				sb.append(" AND");
+			}
+		}
+
+		PreparedStatement stmt = conn.prepareStatement(sb.toString());
+
+		int i = 1;
+
+		for (Map.Entry<String, String> entry : map.entrySet()) {
+			switch (entry.getKey()) {
+				case "from":
+					stmt.setDate(i, Date.valueOf(req.queryParams("from")));
+					break;
+				case "to":
+					stmt.setDate(i, Date.valueOf(req.queryParams("to")));
+					break;
+				case "blocked":
+					stmt.setString(i, req.queryParams("blocked"));
+					break;
+				case "cookie":
+					stmt.setString(i, req.queryParams("cookie"));
+					break;
+				default:
+					break;
+			}
+			i++;
+		}
+
+		ResultSet rs = stmt.executeQuery();
+
+		String result = Jsonizer.toJson(rs, title);
+		System.out.println(result);
+
+		return result;
 	}
 
 	public String reset(Request req, Response res) {
-		try {
+		String[] tables = {"Cookie", "Customers", "Ingredients", "Orders", "Contain", "Pallet", "Amount"};
+		List values = Arrays.asList("Cookie", "Customers", "Ingredients", "Contain");
 
-			Statement stmt = conn.createStatement();
-
-			InputStream resourceAsStream = getClass().getResource("/reset.sql").openStream();
-			if (resourceAsStream == null)
-				throw new IOError(new IOException("Could not find reset.sql"));
-
-			BufferedReader reader = new BufferedReader(new InputStreamReader(resourceAsStream, StandardCharsets.UTF_8));
-			String sql = "";
-
-			for (String line = reader.readLine(); line != null; line = reader.readLine()) {
-				if (!"".equals(line.trim()))
-					sql += line + " ";
-			}
-
-			for (String statement : sql.split(";")) { // Dela upp så varje rad är en SQL fråga
-				stmt.addBatch(statement);
-			}
-
-			stmt.executeBatch();
-			stmt.close();
-		} catch (IOException e) {
-			throw new RuntimeException("Could not open reset file.");
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-
-		return "{}";
-	}
-
-	public String createPallet(Request req, Response res) {
-
-		String cookieName = req.queryParams("cookie");
-		String creationTime = LocalDate.now().toString();
-		int palletId = -1;
-
-		if (cookieExists(cookieName)) { // Create pallet
-
+		for (String table : tables) {
 			try {
+				Statement stmt = conn.createStatement();
+				stmt.execute("SET FOREIGN_KEY_CHECKS=0");
+				String sql = "TRUNCATE TABLE " + table;
+				stmt.execute(sql);
 
-				String sql = "INSERT INTO Pallet (palletDate, cName) VALUES(?, ?)"; // Create pallet
-				PreparedStatement ps = conn.prepareStatement(sql);
-				ps.setString(1, creationTime);
-				ps.setString(2, cookieName);
-
-				ps.executeUpdate();
-				ResultSet rs = ps.getGeneratedKeys();
-				if (rs.next()) {
-					palletId = rs.getInt(1);
+				if (values.contains(table)) {
+					stmt.executeUpdate(getValueQuery(table));
 				}
-				ps.close();
 
-				subtractIngredients(cookieName);
-
-			} catch (SQLException e) {
-
+				stmt.execute("SET FOREIGN_KEY_CHECKS=1");
+			} catch (SQLException e){
 				e.printStackTrace();
-				return Jsonizer.anythingToJson("error", "status");
 			}
-
 		}
-
-		else {
-			return Jsonizer.anythingToJson("unknown cookie", "status");
-		}
-
-		return Jsonizer.anythingToJson(palletId, "id");
+		return "{\n\t\"status\": \"ok\"\n}";
 	}
-
-	private boolean cookieExists(String cookieName) {
-
-		String sql = "SELECT cName FROM Cookies WHERE cName = ?";
-
-		try {
-			PreparedStatement ps = conn.prepareStatement(sql);
-			ps.setString(1, cookieName);
-			ResultSet rs = ps.executeQuery();
-
-			if (rs.next()) {
-				ps.close();
-				return true;
+		private String getValueQuery(String table) {
+			switch (table) {
+				case "cookie":
+					return Cookie;
+				case "customers":
+					return Customers;
+				case "ingredient":
+					return Ingredient;
+				case "Contain":
+					return Contain;
+				default:
+					return "";
 			}
-			ps.close();
-
-		} catch (SQLException e) {
-
-			e.printStackTrace();
 		}
 
-		return false;
+	public String createPallet(Request req, Response res) throws SQLException {
+		String cookie = req.queryParams("cookie");
+		System.out.println("hej");
+		if (cookie == null) {
+			return "{\n\t\"status\": \"error\"\n}";
+		} else if (!checkCookie(cookie)) {
+			return "{\n\t\"status\": \"unknown cookie\"\n}";
+		}
 
+		String sql = "UPDATE Ingredients SET stockAmount = stockAmount - ? WHERE ingredientName = ?";
+		HashMap<String, Integer> map = cookieRecipe(cookie);
+
+		for (Map.Entry<String, Integer> entry : map.entrySet()) {
+			PreparedStatement stmt = conn.prepareStatement(sql);
+			stmt.setInt(1, entry.getValue()*54);
+			stmt.setString(2, entry.getKey());
+			stmt.executeUpdate();
+		}
+
+		sql = "INSERT INTO Orders ( customer) VALUES (\"Finkakor AB\")";
+		Statement stmt = conn.createStatement();
+
+		stmt.executeUpdate(sql, stmt.RETURN_GENERATED_KEYS);
+		ResultSet rs = stmt.getGeneratedKeys();
+
+		int createdId = 0;
+		if (rs.next()) {
+			createdId = rs.getInt(1);
+		}
+
+		sql = "INSERT INTO Pallet(palletDate, dDate, blocked, cName, ordNbr) VALUES (NOW(), NOW(), \"no\", \"" + cookie + "\"," + createdId + ")";
+
+		stmt.executeUpdate(sql);
+
+		return "{\n\t\"status\": \"ok\" ,\n \n\t\"id\":" +  createdId + "}";
 	}
+	private HashMap<String, Integer> cookieRecipe(String cookie) throws SQLException {
+		HashMap<String, Integer> map = new HashMap<String, Integer>();
+		String sql = "SELECT cName, ingredientName, rAmount FROM Contain WHERE cName=\"" + cookie + "\"";
+		Statement stmt = conn.createStatement();
+		ResultSet rs = stmt.executeQuery(sql);
 
-	private void subtractIngredients(String cookieName) {
-
-		HashMap<String, Integer> ingredients = new HashMap<String, Integer>();
-
-		try {
-			conn.setAutoCommit(false); // Transaction
-
-			// Find how much we have of each ingredient used in this cookie
-			String sql = "SELECT StoredIngredients.ingredient, amountInStorage\n" + "FROM StoredIngredients\n"
-					+ "INNER JOIN IngredientAmount on IngredientAmount.ingredient = StoredIngredients.ingredient\n"
-					+ "WHERE cookieName = ?";
-			PreparedStatement ps = conn.prepareStatement(sql);
-			ps.setString(1, cookieName);
-			ResultSet rs = ps.executeQuery();
-
-			while (rs.next()) {
-				String ingredient = rs.getString("ingredient"); // add ingredient and total in storage into map
-				int amount = rs.getInt("amountInStorage");
-				ingredients.put(ingredient, amount); // Map with total amount of each ingredient
-			}
-			ps.close();
-
-			sql = "SELECT ingredient, amount FROM IngredientAmount WHERE cookieName = ?"; // find ingredients and
-																							// amounts
-			ps = conn.prepareStatement(sql);
-			ps.setString(1, cookieName);
-			rs = ps.executeQuery();
-
-			while (rs.next()) {
-
-				String ingredient = rs.getString("ingredient");
-				int amount = rs.getInt("amount");
-
-				int newAmount = ingredients.get(ingredient) - amount * 54; // Subtract total with the amount used to
-																			// produce cookies
-				ingredients.put(ingredient, newAmount); // Put in new total amount
-			}
-			ps.close();
-
-			for (Map.Entry<String, Integer> entry : ingredients.entrySet()) { // Update each ingredient
-
-				sql = "UPDATE StoredIngredients SET amountInStorage = ? WHERE ingredient = ?";
-				ps = conn.prepareStatement(sql);
-				ps.setInt(1, entry.getValue());
-				ps.setString(2, entry.getKey());
-				ps.executeUpdate();
-				ps.close();
-
-			}
-
-			conn.commit();
-
-		} catch (SQLException e) {
-
-			try {
-				conn.rollback();
-			} catch (SQLException e1) {
-				e1.printStackTrace();
-			}
-			e.printStackTrace();
+		while(rs.next()) {
+			map.put(rs.getString(2), (Integer) rs.getInt(3));
 		}
 
-		try {
-			conn.setAutoCommit(true);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
+		return map;
+	}
+	private boolean checkCookie(String cookie) throws SQLException {
+		PreparedStatement stmt = conn.prepareStatement("SELECT * FROM Cookie WHERE cName=?");
+		stmt.setString(1, cookie);
+		ResultSet rs = stmt.executeQuery();
 
+		return rs.next();
+	}
+	private String getJson(String sql, String title) {
+		try {
+			PreparedStatement stmt = conn.prepareStatement(sql);
+			ResultSet rs = stmt.executeQuery();
+
+			return Jsonizer.toJson(rs, title);
+		} catch (SQLException e) {
+			return "";
+		}
+	}
 	}
