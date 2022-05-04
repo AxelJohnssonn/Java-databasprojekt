@@ -15,17 +15,17 @@ teleNbr		int not null,
 primary key (customer)
 );
 create table Orders(
-ordNbr		int not null,
+ordNbr		int auto_increment,
 customer varchar(100) not null,
 primary key (ordNbr),
 foreign key (customer) references Customers(customer)
 );
 create table Pallet(
-palletNbr	int not null,
+palletNbr	int auto_increment,
 palletDate	date,
 blocked 	boolean,
 dDate 		date,
-ordNbr    int,
+ordNbr    	int auto_increment,
 location 	varchar(100) not null,
 cName		varchar(100) not null,
 primary key (palletNbr),
